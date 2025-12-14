@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: fitplanhub-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: fitplanhub
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - fitplanhub-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitplanhub-backend
+    restart: unless-stopped
+    environment:
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/fitplanhub
+      JWT_SECRET: your_jwt_secret_key_change_this_in_production
+      NODE_ENV: development
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    networks:
+      - fitplanhub-network
+    volumes:
+      - ./server:/app/server
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: fitplanhub-frontend
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - fitplanhub-network
+    volumes:
+      - ./client/src:/app/src
+    stdin_open: true
+    tty: true
+
+networks:
+  fitplanhub-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
